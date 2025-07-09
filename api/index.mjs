@@ -78,13 +78,13 @@ app.get('/api/trello-sessions', async (req, res) => {
         }
         const listsData = await listsResponse.json();
 
-        // Najdeme seznam, který nás zajímá (např. podle jména "Nadcházející tréninky")
+        // Najdeme seznam, který nás zajímá (podle jména "Sessions")
         // Ujisti se, že se název PŘESNĚ shoduje s názvem tvého seznamu na Trello desce
-       const targetList = listsData.find(list => list.name === "Sessions"); 
+        const targetList = listsData.find(list => list.name === "Sessions"); 
 
         if (!targetList) {
-            console.error('SERVER ERROR: Seznam "Nadcházející tréninky" nebyl nalezen na desce.');
-            return res.status(404).json({ error: 'Seznam "Nadcházející tréninky" nebyl nalezen na desce. Zkontrolujte název a ID desky.' });
+            console.error('SERVER ERROR: Seznam "Sessions" nebyl nalezen na desce.');
+            return res.status(404).json({ error: 'Seznam "Sessions" nebyl nalezen na desce. Zkontrolujte název a ID desky.' });
         }
 
         // Získáme karty z nalezeného seznamu
@@ -101,21 +101,27 @@ app.get('/api/trello-sessions', async (req, res) => {
 
         const sessions = await Promise.all(cardsData.map(async (card, index) => {
             const { host, coHost } = parseCardDescription(card.desc);
-            // Vezme první štítek. Pokud chcete více, upravte logiku.
-            const statusLabel = card.labels.length > 0 ? card.labels[0].name : 'N/A'; 
             
-            // getListName je volán asynchronně a je potřeba ho awaitovat
+            // Kontrola, zda karta má štítek "JOINABLE" (case-insensitive)
+            const isJoinable = card.labels.some(label => label.name.toUpperCase() === "JOINABLE");
+
+            // Filtrujeme štítek "JOINABLE", aby se nezobrazoval v UI v Robloxu
+            const visibleLabels = card.labels.filter(label => label.name.toUpperCase() !== "JOINABLE");
+            // Vezmeme první viditelný štítek pro zobrazení stavu
+            const displayStatusLabel = visibleLabels.length > 0 ? visibleLabels[0].name : 'N/A';
+
             const listName = await getListName(card.idList); 
 
             return {
                 id: card.id,
                 order: index + 1, // Pořadí karty v seznamu (od 1)
                 name: card.name,
-                status: statusLabel,
+                status: displayStatusLabel, // Použijeme štítek, který není "JOINABLE"
                 dueDate: card.due, // Datum splatnosti z Trello (ISO 8601 formát)
                 host: host,
                 coHost: coHost,
-                listName: listName // Pro informaci, ze kterého seznamu karta je
+                listName: listName, // Pro informaci, ze kterého seznamu karta je
+                isJoinable: isJoinable // Nová vlastnost: true/false podle štítku "JOINABLE"
             };
         }));
 
