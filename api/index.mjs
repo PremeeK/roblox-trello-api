@@ -80,7 +80,7 @@ app.get('/api/trello-sessions', async (req, res) => {
 
         // Najdeme seznam, který nás zajímá (např. podle jména "Nadcházející tréninky")
         // Ujisti se, že se název PŘESNĚ shoduje s názvem tvého seznamu na Trello desce
-        const targetList = listsData.find(list => list.name === "Nadcházející tréninky"); 
+       const targetList = listsData.find(list => list.name === "Sessions"); 
 
         if (!targetList) {
             console.error('SERVER ERROR: Seznam "Nadcházející tréninky" nebyl nalezen na desce.');
